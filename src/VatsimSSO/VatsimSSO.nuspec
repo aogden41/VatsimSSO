@@ -2,16 +2,16 @@
 <package >
   <metadata>
     <id>$id$</id>
-    <version>$version$</version>
-    <title>$title$</title>
-    <authors>$author$</authors>
-    <owners>$author$</owners>
+    <version>1.0</version>
+    <title>VATSIM SSO</title>
+    <authors>Andrew Ogden</authors>
+    <owners>Andrew Ogden</owners>
     <licenseUrl>https://github.com/andrewogden1678/VatsimSSO/blob/master/LICENSE</licenseUrl>
     <projectUrl>https://github.com/andrewogden1678/VatsimSSO</projectUrl>
-    <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <description>$description$</description>
-    <releaseNotes>Summary of changes made in this release of the package.</releaseNotes>
-    <copyright>Copyright 2018</copyright>
-    <tags>Tag1 Tag2</tags>
+    <requireLicenseAcceptance>true</requireLicenseAcceptance>
+    <description>An OAuth 1.0 wrapper designed to easily implement the VATSIM SSO system in C# web applications.</description>
+    <releaseNotes>Initial release</releaseNotes>
+    <copyright>Copyright Andrew Ogden 2018</copyright>
+    <tags>vatsim, sso, oauth, c#, .net</tags>
   </metadata>
 </package>
