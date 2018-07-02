@@ -60,6 +60,9 @@ namespace VatsimSSO
         /// <returns>Dynamic token object (three properties: oauth_token, oauth_token_secret, oauth_callback_confirmed)</returns>
         public dynamic GetRequestToken()
         {
+            // Check if callback url has been provided
+            if (CallbackUrl == null) throw new Exception("Please provide a valid callback url.");
+
             // Base request object
             OAuthRequest client;
 
@@ -105,7 +108,9 @@ namespace VatsimSSO
             
             // Check if token has been provided
             if (Token == null) throw new Exception("Please provide a valid token");
-            
+
+            // Check if token secret has been provided
+            if (TokenSecret == null) throw new Exception("Please provide a valid token secret");
             // Base request object
             OAuthRequest client;
 
