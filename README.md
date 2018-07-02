@@ -8,7 +8,7 @@ Dependencies will be pulled at the same time.
 ### Implementation
 
 #### Initial login token
-The code below will return the login token used to authenticate the user when redirecting to the SSO server (either the demo or the production servers).
+The code below will return the login token used to authenticate the user when redirecting to the SSO server (BaseUrl property defaults to https://cert.vatsim.net/sso/api).
 ```csharp
 // Client object
 VatsimSSO r = new VatsimSSO("CONSUMER_KEY", "CONSUMER_SECRET", "CALLBACK_URI");
