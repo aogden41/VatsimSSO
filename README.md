@@ -11,7 +11,7 @@ Dependencies will be pulled at the same time.
 The code below will return the login token used to authenticate the user when redirecting to the SSO server (either the demo or the production servers).
 ```csharp
 // Client object
-VatsimSSO r = new VatsimSSO("CONSUMER_KEY", "CONSUMER_SECRET", "https://cert.vatsim.net/sso/api/", "CALLBACK_URI");
+VatsimSSO r = new VatsimSSO("CONSUMER_KEY", "CONSUMER_SECRET", "CALLBACK_URI");
 
 // Get the request token
 var RequestToken = r.GetRequestToken();
@@ -25,7 +25,7 @@ return Redirect("https://cert.vatsim.net/sso/auth/pre_login/?oauth_token=" + Req
 The below code will return a JSON string of the information for the user that has just logged in, using the access token, secret and verifier.
 ```csharp
 // Client object
-VatsimSSO r = new VatsimSSO("CONSUMER_KEY", "CONSUMER_SECRET", "https://cert.vatsim.net/sso/api/", Token: oauth_token, Verifier: oauth_verifier, TokenSecret: oauth_token_secret);
+VatsimSSO r = new VatsimSSO("CONSUMER_KEY", "CONSUMER_SECRET", Token: oauth_token, Verifier: oauth_verifier, TokenSecret: oauth_token_secret);
 
 // Json string
 string Results = r.ReturnData();
