@@ -22,7 +22,7 @@ A redirect example in ASP.NET would look like this:
 return Redirect("https://cert.vatsim.net/sso/auth/pre_login/?oauth_token=" + RequestToken.oauth_token);
 ```
 #### Returned user data
-The below code will return a JSON string of the information for the user that has just logged in.
+The below code will return a JSON string of the information for the user that has just logged in, using the access token, secret and verifier.
 ```csharp
 // Client object
 VatsimSSO r = new VatsimSSO("CONSUMER_KEY", "CONSUMER_SECRET", "https://cert.vatsim.net/sso/api/", Token: oauth_token, Verifier: oauth_verifier, TokenSecret: oauth_token_secret);
