@@ -90,6 +90,9 @@ ipch/
 *.vspx
 *.sap
 
+# Nuget packages
+/src/packages
+
 # TFS 2012 Local Workspace
 $tf/
 
