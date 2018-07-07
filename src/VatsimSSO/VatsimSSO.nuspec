@@ -2,7 +2,7 @@
 <package >
   <metadata>
     <id>$id$</id>
-    <version>1.0</version>
+    <version>1.2</version>
     <title>VATSIM SSO</title>
     <authors>Andrew Ogden</authors>
     <owners>Andrew Ogden</owners>
@@ -10,7 +10,7 @@
     <projectUrl>https://github.com/andrewogden1678/VatsimSSO</projectUrl>
     <requireLicenseAcceptance>true</requireLicenseAcceptance>
     <description>An OAuth 1.0 wrapper designed to easily implement the VATSIM SSO system in C# web applications.</description>
-    <releaseNotes>Initial release</releaseNotes>
+    <releaseNotes>Refactored code, code now returns custom objects rather than raw JSON strings. Documentation updated.</releaseNotes>
     <copyright>Copyright Andrew Ogden 2018</copyright>
     <tags>vatsim, sso, oauth, c#, .net</tags>
   </metadata>

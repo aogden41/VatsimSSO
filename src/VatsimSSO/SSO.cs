@@ -2,7 +2,7 @@
 using System.IO;
 using System.Net;
 using OAuth;
-using Json;
+using Newtonsoft.Json;
 
 namespace VatsimSSO
 {
@@ -26,6 +26,10 @@ namespace VatsimSSO
         private string Token { get; set; } // Only required when requesting protected resources (User data)
 
         private string TokenSecret { get; set; } // Only required when requesting protected resources (User data)
+
+        private string JsonRequestData { get; set; } // Raw json string for the request token
+
+        private string JsonReturnData { get; set; } // Raw json string for the return user data
 
         // Constructor
         /// <summary>
@@ -54,11 +58,12 @@ namespace VatsimSSO
         METHODS
         */
 
+        #region Login token
         /// <summary>
-        /// Gets a login token to use in client authentication
+        /// Gets a login token object to use in client authentication
         /// </summary>
-        /// <returns>Dynamic token object (three properties: oauth_token, oauth_token_secret, oauth_callback_confirmed)</returns>
-        public dynamic GetRequestToken()
+        /// <returns>Returns a custom object with token and result information</returns>
+        public SSOAuthRequest GetRequestToken()
         {
             // Check if callback url has been provided
             if (CallbackUrl == null) throw new Exception("Please provide a valid callback url.");
@@ -75,7 +80,7 @@ namespace VatsimSSO
                 CallbackUrl = CallbackUrl,
                 Type = OAuthRequestType.RequestToken,
                 SignatureMethod = OAuthSignatureMethod.HmacSha1,
-                RequestUrl = this.BaseUrl + "login_token/"
+                RequestUrl = this.BaseUrl + "login_token/",
             };
 
             // Generate auth header
@@ -91,17 +96,21 @@ namespace VatsimSSO
             string Json = Reader.ReadToEnd();
 
             // Deserialize the JSON string into a dynamic object
-            var Token = JsonParser.Deserialize(Json);
+            var Token = JsonConvert.DeserializeObject<SSOAuthRequest>(Json);
+
+            if (Token != null)
+                Token.Raw = Json;
 
             // Return the token object from the JSON string (has three values: oauth_token, oauth_token_secret, oauth_callback_confirmed)
-            return Token.token;
+            return Token;
         }
 
+        #endregion
         /// <summary>
         /// Returns the user data in JSON using the token, token secret and verifier provided.
         /// </summary>
         /// <returns>JSON string</returns>
-        public string ReturnData()
+        public SSOReturnData ReturnData()
         {
             // Check if verifier has been provided
             if (Verifier == null) throw new Exception("Please provide a valid verifier");
@@ -139,8 +148,14 @@ namespace VatsimSSO
             StreamReader Reader = new StreamReader(Response.GetResponseStream());
             string Json = Reader.ReadToEnd();
 
+            // Deserialize the JSON string into a dynamic object
+            var Data = JsonConvert.DeserializeObject<SSOReturnData>(Json);
+
+            if (Data != null)
+                Data.Raw = Json;
+
             // Return the user
-            return Json;
+            return Data;
         }
     }
 }
