@@ -101,7 +101,7 @@ namespace VatsimSSO
             if (Token != null)
                 Token.Raw = Json;
 
-            // Return the token object from the JSON string (has three values: oauth_token, oauth_token_secret, oauth_callback_confirmed)
+            // Return the token object
             return Token;
         }
 
