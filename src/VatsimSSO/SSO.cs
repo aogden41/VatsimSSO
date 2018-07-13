@@ -3,6 +3,8 @@ using System.IO;
 using System.Net;
 using OAuth;
 using Newtonsoft.Json;
+using TinyOAuth1;
+using System.Web;
 
 namespace VatsimSSO
 {
@@ -84,11 +86,11 @@ namespace VatsimSSO
             };
 
             // Generate auth header
-            string Auth = client.GetAuthorizationHeader();
+            string Auth = client.GetAuthorizationQuery();
 
             // Create the web request and add auth header
-            var Request = (HttpWebRequest)WebRequest.Create(client.RequestUrl);
-            Request.Headers.Add("Authorization", Auth);
+            var Url = client.RequestUrl + '?' + Auth;
+            var Request = (HttpWebRequest)WebRequest.Create(Url);
 
             // Get the response and read to JSON
             var Response = (HttpWebResponse)Request.GetResponse();
@@ -129,19 +131,22 @@ namespace VatsimSSO
                 ConsumerKey = this.ConsumerKey,
                 ConsumerSecret = this.ConsumerSecret,
                 Method = "GET",
+                Type = OAuthRequestType.ProtectedResource,
                 SignatureMethod = OAuthSignatureMethod.HmacSha1,
                 Token = this.Token,
-                TokenSecret = TokenSecret,
+                TokenSecret = HttpUtility.UrlDecode(TokenSecret),
                 Verifier = this.Verifier,
                 RequestUrl = this.BaseUrl + "login_return/"
             };
 
             // Generate auth header
-            string Auth = client.GetAuthorizationHeader();
+            string Auth = client.GetAuthorizationQuery();
+
+            // HttpUtility.UrlEncode();
 
             // Create webrequest and add the auth header
-            var Request = (HttpWebRequest)WebRequest.Create(client.RequestUrl);
-            Request.Headers.Add("Authorization", Auth);
+            var Url = client.RequestUrl + '?' + Auth;
+            var Request = (HttpWebRequest)WebRequest.Create(Url);
 
             // Get response and read result to JSON
             var Response = (HttpWebResponse)Request.GetResponse();
