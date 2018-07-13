@@ -57,7 +57,7 @@
   <ItemGroup>
     <Compile Include="SSO.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="SSOAuthRequest.cs" />
+    <Compile Include="SSOAuthResponse.cs" />
     <Compile Include="SSOReturnData.cs" />
   </ItemGroup>
   <ItemGroup>

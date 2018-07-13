@@ -1,80 +1,117 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Net;
 using OAuth;
 using Newtonsoft.Json;
-using TinyOAuth1;
 using System.Web;
 
 namespace VatsimSSO
 {
     public sealed class VatsimSSO
     {   
-        /*
-        / Properties
-        */
-        private string ConsumerKey { get; set; } // REQUIRED
+		/// <summary>
+		///		The consumer key.
+		/// </summary>
+        private string ConsumerKey { get; set; }
 
-        private string ConsumerSecret { get; set; } // REQUIRED
+		/// <summary>
+		///		The consumer secret.
+		/// </summary>
+        private string ConsumerSecret { get; set; }
 
-        private string BaseUrl { get; set; } // Defaults to https://cert.vatsim.net/sso/api/
+		/// <summary>
+		///		The base VATSIM SSO url.
+		///		https://cert.vatsim.net/sso/api/ by default.
+		/// </summary>
+		private string BaseUrl { get; set; }
 
-        private string SignatureMethod { get; set; } // Currently only supports HMAC
+		/// <summary>
+		///		The signature method.
+		/// </summary>
+		private readonly string SignatureMethod = "HMAC";
 
-        private string CallbackUrl { get; set; } // REQUIRED
+		/// <summary>
+		///		The callback url.
+		/// </summary>
+        private string CallbackUrl { get; set; }
 
-        private string Verifier { get; set; } // Only required when requesting protected resources (User data)
+		/// <summary>
+		///		The OAuth verifier.
+		///		Only required when requesting protected resources (User data).
+		/// </summary>
+		private string Verifier { get; set; }
 
-        private string Token { get; set; } // Only required when requesting protected resources (User data)
+		/// <summary>
+		///		The OAuth token.
+		///		Only required when requesting protected resources (User data).
+		/// </summary>
+		private string Token { get; set; }
 
-        private string TokenSecret { get; set; } // Only required when requesting protected resources (User data)
+		/// <summary>
+		///		The OAuth token sected.
+		///		Only required when requesting protected resources (User data).
+		/// </summary>
+		private string TokenSecret { get; set; }
 
-        private string JsonRequestData { get; set; } // Raw json string for the request token
+		/// <summary>
+		///		The raw json string for the request token.
+		/// </summary>
+		private string JsonRequestData { get; set; }
 
-        private string JsonReturnData { get; set; } // Raw json string for the return user data
+		/// <summary>
+		///		The raw json string for the return user data
+		/// </summary>
+		private string JsonReturnData { get; set; } 
 
-        // Constructor
         /// <summary>
-        /// Constructor
+        ///		The constructor
         /// </summary>
-        /// <param name="ConsumerKey">OAuth Consumer Key - REQUIRED</param>
-        /// <param name="ConsumerSecret">OAuth Consumer Secret - REQUIRED</param>
-        /// <param name="BaseUrl">OAuth Base URL (defaults to cert)</param>
-        /// <param name="CallbackUrl">Link to redirect back to after login</param>
-        /// <param name="Verifier">OAuth Verifier</param>
-        /// <param name="Token">OAuth Access Token</param>
-        /// <param name="SSOTokenSecret">OAuth Token Secret</param>
+        /// <param name="ConsumerKey">
+		///		The OAuth Consumer Key.
+		///	</param>
+        /// <param name="ConsumerSecret">
+		///		The OAuth Consumer Secret.
+		///	</param>
+        /// <param name="BaseUrl">
+		///		OAuth Base URL
+		///	</param>
+        /// <param name="CallbackUrl">
+		///		Link to redirect back to after login
+		///	</param>
+        /// <param name="Verifier">
+		///		OAuth Verifier
+		///	</param>
+        /// <param name="Token">
+		///		OAuth Access Token
+		///	</param>
+        /// <param name="SSOTokenSecret">
+		///		OAuth Token Secret
+		///	</param>
         public VatsimSSO(string ConsumerKey, string ConsumerSecret, string BaseUrl = "https://cert.vatsim.net/sso/api/", string CallbackUrl = null, string Verifier = null, string Token = null, string TokenSecret = null)
         {
             this.ConsumerKey = ConsumerKey;
             this.ConsumerSecret = ConsumerSecret;
             this.BaseUrl = BaseUrl;
             this.CallbackUrl = CallbackUrl;
-            this.SignatureMethod = "HMAC";
+            // this.SignatureMethod = "HMAC";
             this.Verifier = Verifier;
             this.Token = Token;
             this.TokenSecret = TokenSecret;
         }
 
-        /*
-        METHODS
-        */
-
-        #region Login token
         /// <summary>
-        /// Gets a login token object to use in client authentication
+        ///		Get's the SSO token information.
         /// </summary>
-        /// <returns>Returns a custom object with token and result information</returns>
-        public SSOAuthRequest GetRequestToken()
+        /// <returns>
+		///		An SSO authentication response. See <see cref="SSOAuthResponse"/>.
+		///	</returns>
+        public SSOAuthResponse GetRequestToken()
         {
-            // Check if callback url has been provided
-            if (CallbackUrl == null) throw new Exception("Please provide a valid callback url.");
+            // Check if callback url has not been provided
+            if (string.IsNullOrEmpty(CallbackUrl.Trim())) throw new NullReferenceException("Callback Url not provided. Please do so in the constructor.");
 
             // Base request object
-            OAuthRequest client;
-
-            // Instantiate the client object
-            client = new OAuthRequest()
+            OAuthRequest client = new OAuthRequest()
             {
                 ConsumerKey = this.ConsumerKey,
                 ConsumerSecret = this.ConsumerSecret,
@@ -86,47 +123,46 @@ namespace VatsimSSO
             };
 
             // Generate auth header
-            string Auth = client.GetAuthorizationQuery();
+            string auth = client.GetAuthorizationQuery();
 
             // Create the web request and add auth header
-            var Url = client.RequestUrl + '?' + Auth;
-            var Request = (HttpWebRequest)WebRequest.Create(Url);
+            var url = client.RequestUrl + '?' + auth;
+            var request = (HttpWebRequest)WebRequest.Create(url);
 
             // Get the response and read to JSON
-            var Response = (HttpWebResponse)Request.GetResponse();
-            StreamReader Reader = new StreamReader(Response.GetResponseStream());
-            string Json = Reader.ReadToEnd();
+            var response = (HttpWebResponse)request.GetResponse();
+            StreamReader reader = new StreamReader(response.GetResponseStream());
+            string json = reader.ReadToEnd();
 
             // Deserialize the JSON string into a dynamic object
-            var Token = JsonConvert.DeserializeObject<SSOAuthRequest>(Json);
+            var token = JsonConvert.DeserializeObject<SSOAuthResponse>(json);
 
-            if (Token != null)
-                Token.Raw = Json;
+            if (token != null)
+                token.Raw = json;
 
             // Return the token object
-            return Token;
+            return token;
         }
 
-        #endregion
         /// <summary>
-        /// Returns the user data in JSON using the token, token secret and verifier provided.
+        ///		Get's the user data.
         /// </summary>
-        /// <returns>JSON string</returns>
+        /// <returns>
+		///		The user data. See <see cref="SSOReturnData"/>.
+		///	</returns>
         public SSOReturnData ReturnData()
         {
-            // Check if verifier has been provided
-            if (Verifier == null) throw new Exception("Please provide a valid verifier");
+			// Check if verifier has been provided
+			if (string.IsNullOrEmpty(Verifier.Trim())) throw new NullReferenceException("The OAuth Verifier was null or empty.");
             
             // Check if token has been provided
-            if (Token == null) throw new Exception("Please provide a valid token");
+            if (string.IsNullOrEmpty(Token.Trim())) throw new NullReferenceException("The OAuth Token was null or empty.");
 
-            // Check if token secret has been provided
-            if (TokenSecret == null) throw new Exception("Please provide a valid token secret");
-            // Base request object
-            OAuthRequest client;
-
-            // Instantiate the client object
-            client = new OAuthRequest()
+			// Check if token secret has been provided
+			if (string.IsNullOrEmpty(TokenSecret.Trim())) throw new NullReferenceException("The OAuth Token Secret was null or empty.");
+			
+			// Base request object
+			OAuthRequest client = new OAuthRequest()
             {
                 ConsumerKey = this.ConsumerKey,
                 ConsumerSecret = this.ConsumerSecret,
@@ -134,33 +170,31 @@ namespace VatsimSSO
                 Type = OAuthRequestType.ProtectedResource,
                 SignatureMethod = OAuthSignatureMethod.HmacSha1,
                 Token = this.Token,
-                TokenSecret = HttpUtility.UrlDecode(TokenSecret),
+                TokenSecret = TokenSecret,
                 Verifier = this.Verifier,
                 RequestUrl = this.BaseUrl + "login_return/"
             };
 
             // Generate auth header
-            string Auth = client.GetAuthorizationQuery();
-
-            // HttpUtility.UrlEncode();
+            string auth = client.GetAuthorizationQuery();
 
             // Create webrequest and add the auth header
-            var Url = client.RequestUrl + '?' + Auth;
-            var Request = (HttpWebRequest)WebRequest.Create(Url);
+            var url = new Uri(client.RequestUrl + '?' + auth);
+            var request = (HttpWebRequest)WebRequest.Create(url.AbsoluteUri);
 
             // Get response and read result to JSON
-            var Response = (HttpWebResponse)Request.GetResponse();
-            StreamReader Reader = new StreamReader(Response.GetResponseStream());
-            string Json = Reader.ReadToEnd();
+            var response = (HttpWebResponse)request.GetResponse();
+            StreamReader reader = new StreamReader(response.GetResponseStream());
+            string json = reader.ReadToEnd();
 
             // Deserialize the JSON string into a dynamic object
-            var Data = JsonConvert.DeserializeObject<SSOReturnData>(Json);
+            var data = JsonConvert.DeserializeObject<SSOReturnData>(json);
 
-            if (Data != null)
-                Data.Raw = Json;
+            if (data != null)
+                data.Raw = json;
 
             // Return the user
-            return Data;
+            return data;
         }
     }
 }
