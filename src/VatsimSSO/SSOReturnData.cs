@@ -8,7 +8,7 @@ namespace VatsimSSO
 {
     public class SSOReturnData
     {
-        public SSORequestStatus Request { get; set; }
+        public SSOResponseStatus Request { get; set; }
         public SSOUser User { get; set; }
         public string Raw { get; set; } = "";
     }
