@@ -1,200 +1,170 @@
-using System;
-using System.IO;
-using System.Net;
-using OAuth;
-using Newtonsoft.Json;
-using System.Web;
-
-namespace VatsimSSO
+﻿namespace VatsimSingleSignOn
 {
-    public sealed class VatsimSSO
-    {   
+	using System;
+	using System.IO;
+	using System.Net;
+
+	using OAuth;
+	using Newtonsoft.Json;
+	using Newtonsoft.Json.Converters;
+
+	using VatsimSingleSignOn.Responses;
+
+	/// <summary>
+	/// 	The VATSIM SSO communication class.
+	/// </summary>
+	public static class SSO
+	{
 		/// <summary>
-		///		The consumer key.
+		/// 	The VATSIM SSO base url.
 		/// </summary>
-        private string ConsumerKey { get; set; }
+		public static string BaseUrl { get; private set; }
 
 		/// <summary>
-		///		The consumer secret.
+		/// 	Initializes the <see cref="T:VatsimSingleSignOn.SSO"/> class.
 		/// </summary>
-        private string ConsumerSecret { get; set; }
+		static SSO()
+		{
+			BaseUrl = "https://cert.vatsim.net/sso/api/";
+		}
 
 		/// <summary>
-		///		The base VATSIM SSO url.
-		///		https://cert.vatsim.net/sso/api/ by default.
+		///		Gets the VATSIM SSO token information.
 		/// </summary>
-		private string BaseUrl { get; set; }
-
-		/// <summary>
-		///		The signature method.
-		/// </summary>
-		private readonly string SignatureMethod = "HMAC";
-
-		/// <summary>
-		///		The callback url.
-		/// </summary>
-        private string CallbackUrl { get; set; }
-
-		/// <summary>
-		///		The OAuth verifier.
-		///		Only required when requesting protected resources (User data).
-		/// </summary>
-		private string Verifier { get; set; }
-
-		/// <summary>
-		///		The OAuth token.
-		///		Only required when requesting protected resources (User data).
-		/// </summary>
-		private string Token { get; set; }
-
-		/// <summary>
-		///		The OAuth token sected.
-		///		Only required when requesting protected resources (User data).
-		/// </summary>
-		private string TokenSecret { get; set; }
-
-		/// <summary>
-		///		The raw json string for the request token.
-		/// </summary>
-		private string JsonRequestData { get; set; }
-
-		/// <summary>
-		///		The raw json string for the return user data
-		/// </summary>
-		private string JsonReturnData { get; set; } 
-
-        /// <summary>
-        ///		The constructor
-        /// </summary>
-        /// <param name="ConsumerKey">
-		///		The OAuth Consumer Key.
+		/// <param name="consumerKey">
+		///		The OAuth consumer key.
 		///	</param>
-        /// <param name="ConsumerSecret">
-		///		The OAuth Consumer Secret.
+		/// <param name="consumerSecret">
+		///		The OAuth consumer secret.
 		///	</param>
-        /// <param name="BaseUrl">
-		///		OAuth Base URL
+		/// <param name="callbackUrl">
+		///		The url to redirect to after login.
 		///	</param>
-        /// <param name="CallbackUrl">
-		///		Link to redirect back to after login
-		///	</param>
-        /// <param name="Verifier">
-		///		OAuth Verifier
-		///	</param>
-        /// <param name="Token">
-		///		OAuth Access Token
-		///	</param>
-        /// <param name="SSOTokenSecret">
-		///		OAuth Token Secret
-		///	</param>
-        public VatsimSSO(string ConsumerKey, string ConsumerSecret, string BaseUrl = "https://cert.vatsim.net/sso/api/", string CallbackUrl = null, string Verifier = null, string Token = null, string TokenSecret = null)
-        {
-            this.ConsumerKey = ConsumerKey;
-            this.ConsumerSecret = ConsumerSecret;
-            this.BaseUrl = BaseUrl;
-            this.CallbackUrl = CallbackUrl;
-            // this.SignatureMethod = "HMAC";
-            this.Verifier = Verifier;
-            this.Token = Token;
-            this.TokenSecret = TokenSecret;
-        }
-
-        /// <summary>
-        ///		Get's the SSO token information.
-        /// </summary>
-        /// <returns>
-		///		An SSO authentication response. See <see cref="SSOAuthResponse"/>.
+		/// <returns>
+		///		The <see cref="TokenResponse"/>.
 		///	</returns>
-        public SSOAuthResponse GetRequestToken()
-        {
-            // Check if callback url has not been provided
-            if (string.IsNullOrEmpty(CallbackUrl.Trim())) throw new NullReferenceException("Callback Url not provided. Please do so in the constructor.");
+		public static TokenResponse GetRequestToken(string consumerKey, string consumerSecret, string callbackUrl)
+		{
+			// Check the inputs
+			if (string.IsNullOrEmpty(consumerKey)) throw new ArgumentNullException(nameof(consumerKey), "The consumer key cannot be null or empty.");
+			if (string.IsNullOrEmpty(consumerSecret)) throw new ArgumentNullException(nameof(consumerSecret), "The consumer secret cannot be null or empty.");
+			if (string.IsNullOrEmpty(callbackUrl)) throw new ArgumentNullException(nameof(callbackUrl), "The callback url cannot be null or empty.");
 
-            // Base request object
-            OAuthRequest client = new OAuthRequest()
-            {
-                ConsumerKey = this.ConsumerKey,
-                ConsumerSecret = this.ConsumerSecret,
-                Method = "GET",
-                CallbackUrl = CallbackUrl,
-                Type = OAuthRequestType.RequestToken,
-                SignatureMethod = OAuthSignatureMethod.HmacSha1,
-                RequestUrl = this.BaseUrl + "login_token/",
-            };
+			// Create the OAuth request
+			OAuthRequest oauthRequest = new OAuthRequest()
+			{
+				ConsumerKey = consumerKey,
+				ConsumerSecret = consumerSecret,
+				Method = "GET",
+				CallbackUrl = callbackUrl,
+				Type = OAuthRequestType.RequestToken,
+				SignatureMethod = OAuthSignatureMethod.HmacSha1,
+				RequestUrl = BaseUrl + "login_token/",
+			};
 
-            // Generate auth header
-            string auth = client.GetAuthorizationQuery();
+			// Return the response
+			return (TokenResponse) GetSSOResponse(oauthRequest);
+		}
 
-            // Create the web request and add auth header
-            var url = client.RequestUrl + '?' + auth;
-            var request = (HttpWebRequest)WebRequest.Create(url);
-
-            // Get the response and read to JSON
-            var response = (HttpWebResponse)request.GetResponse();
-            StreamReader reader = new StreamReader(response.GetResponseStream());
-            string json = reader.ReadToEnd();
-
-            // Deserialize the JSON string into a dynamic object
-            var token = JsonConvert.DeserializeObject<SSOAuthResponse>(json);
-
-            if (token != null)
-                token.Raw = json;
-
-            // Return the token object
-            return token;
-        }
-
-        /// <summary>
-        ///		Get's the user data.
-        /// </summary>
-        /// <returns>
-		///		The user data. See <see cref="SSOReturnData"/>.
+		/// <summary>
+		///		Gets the user data.
+		/// </summary>
+		/// <param name="consumerKey">
+		///		The OAuth consumer key.
+		///	</param>
+		/// <param name="consumerSecret">
+		///		The OAuth consumer secret.
+		///	</param>
+		/// <param name="callbackUrl">
+		///		The url to redirect to after login.
+		///	</param>
+		/// <param name="verifier">
+		///		The verifier.
+		///	</param>
+		/// <param name="token">
+		///		The token.
+		///	</param>
+		/// <param name="tokenSecret">
+		///		The token secret.
+		///	</param>
+		/// <returns>
+		///		The <see cref="UserResponse"/>.
 		///	</returns>
-        public SSOReturnData ReturnData()
-        {
-			// Check if verifier has been provided
-			if (string.IsNullOrEmpty(Verifier.Trim())) throw new NullReferenceException("The OAuth Verifier was null or empty.");
-            
-            // Check if token has been provided
-            if (string.IsNullOrEmpty(Token.Trim())) throw new NullReferenceException("The OAuth Token was null or empty.");
+		public static UserResponse GetUserData(string consumerKey, string consumerSecret, string callbackUrl, string verifier, string token, string tokenSecret)
+		{
+			// Check the inputs
+			if (string.IsNullOrEmpty(consumerKey)) throw new ArgumentNullException(nameof(consumerKey), "The consumer key cannot be null or empty.");
+			if (string.IsNullOrEmpty(consumerSecret)) throw new ArgumentNullException(nameof(consumerSecret), "The consumer secret cannot be null or empty.");
+			if (string.IsNullOrEmpty(callbackUrl)) throw new ArgumentNullException(nameof(callbackUrl), "The callback url cannot be null or empty.");
+			if (string.IsNullOrEmpty(verifier)) throw new ArgumentNullException(nameof(verifier), "The verifier cannot be null or empty.");
+			if (string.IsNullOrEmpty(token)) throw new ArgumentNullException(nameof(token), "The token cannot be null or empty.");
+			if (string.IsNullOrEmpty(tokenSecret)) throw new ArgumentNullException(nameof(tokenSecret), "The callback url cannot be null or empty.");
 
-			// Check if token secret has been provided
-			if (string.IsNullOrEmpty(TokenSecret.Trim())) throw new NullReferenceException("The OAuth Token Secret was null or empty.");
-			
-			// Base request object
-			OAuthRequest client = new OAuthRequest()
-            {
-                ConsumerKey = this.ConsumerKey,
-                ConsumerSecret = this.ConsumerSecret,
-                Method = "GET",
-                Type = OAuthRequestType.ProtectedResource,
-                SignatureMethod = OAuthSignatureMethod.HmacSha1,
-                Token = this.Token,
-                TokenSecret = TokenSecret,
-                Verifier = this.Verifier,
-                RequestUrl = this.BaseUrl + "login_return/"
-            };
+			// Create the OAuth request
+			OAuthRequest oauthRequest = new OAuthRequest()
+			{
+				ConsumerKey = consumerKey,
+				ConsumerSecret = consumerSecret,
+				Method = "GET",
+				Type = OAuthRequestType.ProtectedResource,
+				SignatureMethod = OAuthSignatureMethod.HmacSha1,
+				Token = token,
+				TokenSecret = tokenSecret,
+				Verifier = verifier,
+				RequestUrl = BaseUrl + "login_return/"
+			};
 
-            // Generate auth header
-            string auth = client.GetAuthorizationQuery();
+			// Return the user
+			return (UserResponse) GetSSOResponse(oauthRequest);
+		}
 
-            // Create webrequest and add the auth header
-            var url = new Uri(client.RequestUrl + '?' + auth);
-            var request = (HttpWebRequest)WebRequest.Create(url.AbsoluteUri);
+		/// <summary>
+		/// 	Gets the response from VATSIM SSO.
+		/// </summary>
+		/// <param name="oauthRequest">
+		/// 	The <see cref="OAuthRequest"/>.
+		/// </param>
+		/// <returns>
+		/// 	The <see cref="IReponse"/>.
+		/// </returns>
+		private static IReponse GetSSOResponse(OAuthRequest oauthRequest)
+		{
+			// Get the auth query
+			string auth = oauthRequest.GetAuthorizationQuery();
 
-            // Get response and read result to JSON
-            var response = (HttpWebResponse)request.GetResponse();
-            StreamReader reader = new StreamReader(response.GetResponseStream());
-            string json = reader.ReadToEnd();
+			// Create the web request and add auth query to the url
+			string url = oauthRequest.RequestUrl + '?' + auth;
+			HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
 
-            // Deserialize the JSON string into a dynamic object
-            var data = JsonConvert.DeserializeObject<SSOReturnData>(json);
+			// Get the response
+			HttpWebResponse response = (HttpWebResponse)request.GetResponse();
+			string json = string.Empty;
+			using (StreamReader responseStream = new StreamReader(response.GetResponseStream())) json = responseStream.ReadToEnd();
 
-            if (data != null)
-                data.Raw = json;
+			// Deserialize the JSON string into an IResponse and account for the date time formatting
+			IReponse data = JsonConvert.DeserializeObject<IReponse>(json, new IsoDateTimeConverter { DateTimeFormat = "yyyy-MM-dd HH:mm:ss" });
+			if (data != null) data.Raw = json;
 
-            // Return the user
-            return data;
-        }
-    }
+			return data;
+		}
+
+		/// <summary>
+		/// 	Sets the base URL.
+		/// </summary>
+		/// <param name="url">
+		/// 	The new URL.
+		/// </param>
+		public static void SetBaseUrl(string url)
+		{
+			// Check the url is valid
+			bool valid = Uri.TryCreate(url, UriKind.Absolute, out Uri uriResult) && uriResult.Scheme == Uri.UriSchemeHttps;
+			if (!valid) throw new ArgumentException("The url\"" + url + "\" is not a valid url.");
+
+			// Check the last character for a /
+			if (!url.EndsWith("/", StringComparison.InvariantCulture)) url += "/";
+
+			// All is well, set the url
+			BaseUrl = url;
+		}
+	}
 }
